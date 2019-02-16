@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const validator = require('validator');
 const jwt = require('jsonwebtoken');
 const _ = require('lodash');
+const bcrypt = require('bcryptjs');
 //用schema才能客製化method
 var UserSchema = new mongoose.Schema({
   email: {
@@ -64,7 +65,6 @@ UserSchema.statics.findByToken = function(token){
     // })
     return Promise.reject('test');
   }
-
   return User.findOne({
     '_id': decoded._id,
     'tokens.token': token,
@@ -72,6 +72,22 @@ UserSchema.statics.findByToken = function(token){
   }) //mongoose中query要用到.要加引號
 
 }               //statics設定model的方法 methods設定instance的
+
+UserSchema.pre('save',function(next){
+  var user = this;
+ 
+  if(user.isModified){
+    bcrypt.genSalt(10,(err,salt) => {
+      bcrypt.hash(user.password,salt,(err,hash) => {
+        user.password = hash;
+        next();
+      })
+    })
+  }else{
+    next();
+  }
+
+})
 
 var User = mongoose.model('User', UserSchema)
 
